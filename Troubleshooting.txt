@@ -1,0 +1,54 @@
+Below are some issues in Unix/Sybase production environment.
+
+Job failures
+
+Deadlock –
+		 deadlocks occur when two database processes require resources in a circular dependency, one of the process is killed by the database server in such cases. A rerun can help in such scenarios. Usually the logs for the application will specify that the process was killed.
+
+No space left on device – indicates that the disk is full at the location where the application intends to write data. Can be rather cryptic at times because it might not tell you which location has this issue. You need to check the disk space in the folder where the application stores data , not the location where it is running the scripts from.
+
+Use df –k command to check if the disk is full and check what measures can be taken to free up space. The command line of the script will give an idea where it writes the data.
+
+
+Permission denied – 
+		Indicates that there are restrictions on file permission that prevent execution or access to a file. Check the file permissions , if it’s a executable or a script then the file should have execute permissions ie the ls –l gives the full listing of permission , check if there is a x (stands for execute) persmission for the user running the script.
+
+ls command had various options ls –lrt is commonly used, shows latest files on the top.
+
+If it doesn’t have execute permission you can grant them by using chmod command
+
+
+Out of memory – 
+		indicates that the application didn’t get enough memory from the os to complete its execution. This might be a one off instance due to too many things running at the same time or could also be indicative or a code issues resulting in memory leak.
+
+Use the ” top” command to check the memory usage and identify if there are other heavy weight programs running at the moment that are hogging the memory. Try rerunning the program once there is sufficient memory available.
+
+
+Log segment filled up –
+
+			Can’t allocate space for object ‘syslogs’ in database ‘master’ because ‘logsegment’
+
+segment is full/has no free extents. If you ran out of space in syslogs, dump the
+
+transaction log. Otherwise, use ALTER DATABASE or sp_extendsegment to increase size
+
+of the segment
+
+Log segment is used by the database to store transaction logs. If a process is doing a DML like update delete insert etc without commiting at frequent intervals it can result in log segment filling up. ( ie inserting a 100 thousand records without batching them). Can also occur if too many things high volume dmls are happening at the same time. Check if the log segment has recovered, it usually recovers once the transactions are complete. Use sp_helpsegment “logsegment” to check the size.total_size total_pages free_pages used_pages reserved_pages————- ————– ————- ————- —————22.0MB 2816 1239 13 0 .
+
+If you can see that pages have freed up, its safe to rerun a job that failed due to log segment filling up.
+
+If you can see that pages have freed up, its safe to rerun a job that failed due to log segment filling up.
+
+process running longer than usual.
+
+First we will need to figure out what exactly the script or program does by looking at its code.
+
+Also we need to get some idea about the progress it has done till now. For e.g lets assume a script usually takes 15mins to complete and its been running for 20minutes today and hasn’t completed yet. How do we figure out how much time it would require to do its job. We can hazard a guess by looking at its log files and comparing them with the ones from the earlier successful runs. Try to figure out what the program is doing at the moment in realtime. Use ps or pstree command if available to figure out the commands being run by the program .
+
+Wont throw much light in case it’s a binary file though. Another command you could use to dig into process level details is strace. It shows that stack trace of the process and if the output isn’t moving at all for the PID in question, there is a good chance that its stuck somewhere.
+
+Correlate the statements you see in the log file with the code base and figure out what could be happening . for e.g lets assume that the log file has messages “ updating customer accounts…..”
+
+Search for this in the script or code base and that should give you a idea whether its accessing database or files in this particular function.
+
